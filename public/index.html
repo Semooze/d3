@@ -1,21 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    <meta
-      name="description"
-      content="Web site created using create-react-app"
-    />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <!--
+
+<head>
+  <meta charset="utf-8" />
+  <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+  <script src="https://d3js.org/d3.v6.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="description" content="Web site created using create-react-app" />
+  <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+  <!--
       manifest.json provides metadata used when your web app is installed on a
       user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
     -->
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <!--
+  <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+  <!--
       Notice the use of %PUBLIC_URL% in the tags above.
       It will be replaced with the URL of the `public` folder during the build.
       Only files inside the `public` folder can be referenced from the HTML.
@@ -24,12 +23,14 @@
       work correctly both with client-side routing and a non-root public URL.
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
-    <title>React App</title>
-  </head>
-  <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
-    <!--
+  <title>React App</title>
+</head>
+
+<body>
+  <noscript>You need to enable JavaScript to run this app.</noscript>
+  <div id="root2"></div>
+  <div id="chart"></div>
+  <!--
       This HTML file is a template.
       If you open it directly in the browser, you will see an empty page.
 
@@ -39,5 +40,173 @@
       To begin the development, run `npm start` or `yarn start`.
       To create a production bundle, use `npm run build` or `yarn build`.
     -->
-  </body>
+  <script>
+    const data = d3.json("%PUBLIC_URL%/data.json").then((data) => {
+
+      var w = 960,
+        h = 800,
+        i = 0,
+        barHeight = 20,
+        barWidth = w * 0.8,
+        duration = 400,
+        root;
+
+      let tree = d3.tree(data).size([h, 100]);
+      console.log(d3.tree())
+      let diagonal = d3.linkHorizontal()
+        .x(function (d) { return d.y; })
+        .y(function (d) { return d.x; });
+
+      let vis = d3.select("#chart").append("svg:svg")
+        .attr("width", w)
+        .attr("height", h)
+        .append("svg:g")
+        .attr("transform", "translate(20,30)");
+
+      function moveChildren(node) {
+        if (node.children) {
+          node.children.forEach(function (c) {
+            moveChildren(c);
+          });
+          node._children = node.children;
+          node.children = null;
+        }
+      }
+
+      function update(source) {
+        console.log('papapa', tree)
+        // Compute the flattened node list. TODO use d3.layout.hierarchy.
+        var nodes = tree
+        console.log('hahaha', nodes)
+        // Compute the "layout".
+        nodes.each(function (n, i) {
+          n.x = i * barHeight;
+        });
+
+        // Update the nodes…
+        var node = vis.selectAll("g.node").data(nodes, function (d) {
+          return d.id || (d.id = ++i);
+        });
+
+        var nodeEnter = node
+          .enter()
+          .append("svg:g")
+          .attr("class", "node")
+          .attr("transform", function (d) {
+            return "translate(" + source.y0 + "," + source.x0 + ")";
+          })
+          .style("opacity", 1e-6);
+        console.log('ssshahaha')
+        // Enter any new nodes at the parent's previous position.
+        nodeEnter
+          .append("svg:rect")
+          .attr("y", -barHeight / 2)
+          .attr("height", barHeight)
+          .attr("width", barWidth)
+          .style("fill", color)
+          .on("click", click);
+
+        nodeEnter
+          .append("svg:text")
+          .attr("dy", 3.5)
+          .attr("dx", 5.5)
+          .text(function (d) {
+            return d.name;
+          });
+
+        // Transition nodes to their new position.
+        nodeEnter
+          .transition()
+          .duration(duration)
+          .attr("transform", function (d) {
+            return "translate(" + d.y + "," + d.x + ")";
+          })
+          .style("opacity", 1);
+
+        node
+          .transition()
+          .duration(duration)
+          .attr("transform", function (d) {
+            return "translate(" + d.y + "," + d.x + ")";
+          })
+          .style("opacity", 1)
+          .select("rect")
+          .style("fill", color);
+        console.log('hahaha')
+        // Transition exiting nodes to the parent's new position.
+        node
+          .exit()
+          .transition()
+          .duration(duration)
+          .attr("transform", function (d) {
+            return "translate(" + source.y + "," + source.x + ")";
+          })
+          .style("opacity", 1e-6)
+          .remove();
+
+        // Update the links…
+        var link = vis.selectAll("path.link").data(tree.links(nodes), function (d) {
+          return d.target.id;
+        });
+
+        // Enter any new links at the parent's previous position.
+        link
+          .enter()
+          .insert("svg:path", "g")
+          .attr("class", "link")
+          .attr("d", function (d) {
+            var o = { x: source.x0, y: source.y0 };
+            return diagonal({ source: o, target: o });
+          })
+          .transition()
+          .duration(duration)
+          .attr("d", diagonal);
+
+        // Transition links to their new position.
+        link.transition().duration(duration).attr("d", diagonal);
+
+        // Transition exiting nodes to the parent's new position.
+        link
+          .exit()
+          .transition()
+          .duration(duration)
+          .attr("d", function (d) {
+            var o = { x: source.x, y: source.y };
+            return diagonal({ source: o, target: o });
+          })
+          .remove();
+
+        // Stash the old positions for transition.
+        nodes.each(function (d) {
+          d.x0 = d.x;
+          d.y0 = d.y;
+        });
+
+        console.log('Run')
+      }
+
+      function click(d) {
+        if (d.children) {
+          d._children = d.children;
+          d.children = null;
+        } else {
+          d.children = d._children;
+          d._children = null;
+        }
+        update(d);
+      }
+
+      function color(d) {
+        return d._children ? "#3182bd" : d.children ? "#c6dbef" : "#fd8d3c";
+      }
+
+      data.x0 = 0;
+      data.y0 = 0;
+      moveChildren(data);
+      update(root = data);
+
+    })
+  </script>
+</body>
+
 </html>
