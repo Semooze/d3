@@ -438,34 +438,39 @@
 
         json.x0 = 0;
         json.y0 = 0;
-        console.log('json0', json)
+
         moveChildren(json);
+        console.log('json', json)
+
         update(root = json);
 
         function update(source) {
-
+            console.log('root', root)
             // Compute the flattened node list. TODO use d3.layout.hierarchy.
             var nodes = tree.nodes(root);
-            console.log('source', source)
-
-            console.log('json', json)
-            console.log('root', root)
-            console.log('nodes', nodes)
             // Compute the "layout".
             nodes.forEach(function (n, i) {
                 n.x = i * barHeight;
             });
+            console.log('nodes', nodes)
+
 
             // Update the nodes…
-            var node = vis.selectAll("g.node")
-                .data(nodes, function (d) { return d.id || (d.id = ++i); });
+            var node = vis.selectAll("g.node").data(nodes, function (d) {
+                return d.id || (d.id = ++i);
+            });
             console.log('node', node)
 
-            var nodeEnter = node.enter().append("svg:g")
+            var nodeEnter = node
+                .enter()
+                .append("svg:g")
                 .attr("class", "node")
-                .attr("transform", function (d) { return "translate(" + source.y0 + "," + source.x0 + ")"; })
+                .attr("transform", function (d) {
+                    console.log('source', source)
+                    return "translate(" + source.y0 + "," + source.x0 + ")";
+                })
                 .style("opacity", 1e-6);
-            console.log('nodeEnter', nodeEnter)
+
             // Enter any new nodes at the parent's previous position.
             nodeEnter.append("svg:rect")
                 .attr("y", -barHeight / 2)
@@ -479,24 +484,36 @@
                 .attr("dx", 5.5)
                 .text(function (d) { return d.name; });
 
-            console.log('nodeEnter', nodeEnter)
+
             // Transition nodes to their new position.
-            nodeEnter.transition()
+            nodeEnter
+                .transition()
                 .duration(duration)
-                .attr("transform", function (d) { return "translate(" + d.y + "," + d.x + ")"; })
+                .attr("transform", function (d) {
+                    console.log('1 node enter', d.y, d.x);
+                    return "translate(" + d.y + "," + d.x + ")";
+                })
                 .style("opacity", 1);
 
-            node.transition()
+            node
+                .transition()
                 .duration(duration)
-                .attr("transform", function (d) { return "translate(" + d.y + "," + d.x + ")"; })
+                .attr("transform", function (d) {
+                    console.log('2 node', d.y, d.x);
+                    return "translate(" + d.y + "," + d.x + ")";
+                })
                 .style("opacity", 1)
                 .select("rect")
                 .style("fill", color);
 
             // Transition exiting nodes to the parent's new position.
-            node.exit().transition()
+            node.exit()
+                .transition()
                 .duration(duration)
-                .attr("transform", function (d) { return "translate(" + source.y + "," + source.x + ")"; })
+                .attr("transform", function (d) {
+                    console.log('3 node', d.y, d.x);
+                    return "translate(" + source.y + "," + source.x + ")";
+                })
                 .style("opacity", 1e-6)
                 .remove();
 
@@ -531,7 +548,7 @@
 
             // Stash the old positions for transition.
             nodes.forEach(function (d) {
-                console.log('call', d)
+
                 d.x0 = d.x;
                 d.y0 = d.y;
             });
@@ -539,7 +556,7 @@
 
         // Toggle children on click.
         function click(d, r) {
-            console.log('click')
+
             if (d.children) {
                 d._children = d.children;
                 d.children = null;

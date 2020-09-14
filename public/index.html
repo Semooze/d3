@@ -55,7 +55,6 @@
         duration = 400,
         root;
 
-      let tree = d3.tree(data).size([h, 100]);
       let diagonal = d3.linkHorizontal()
         .x(function (d) { return d.y; })
         .y(function (d) { return d.x; });
@@ -67,11 +66,15 @@
         .attr("transform", "translate(20,30)");
 
 
+      let h_data = d3.hierarchy(data)
+      let tree = d3.tree().size([h, 100])(h_data);
 
-      data.x0 = 0;
-      data.y0 = 0;
-      moveChildren(data);
-      update(root = data);
+      moveChildren(tree);
+      tree.x0 = 0;
+      tree.y0 = 0;
+      console.log('H-data', tree)
+
+      update(root = tree);
 
       function moveChildren(node) {
         if (node.children) {
@@ -85,7 +88,6 @@
 
 
       function click(r, d) {
-        console.log('click', d)
         if (d.children) {
           d._children = d.children;
           d.children = null;
@@ -103,21 +105,17 @@
 
       function update(source) {
         console.log('root', root)
+        console.log('data', data)
         // Compute the flattened node list. TODO use d3.layout.hierarchy.
-        var h_data = d3.hierarchy(source)
-        var nodes = tree(h_data)
-        console.log('h_data', h_data)
-        // console.log('source', source)
-        // console.log('nodes', nodes)
-        // console.log('nodes', nodes.children)
-        console.log('json0', data)
+        var nodes = []
+        h_data.eachBefore((d) => nodes.push(d))
+        console.log('nodes', nodes)
         // Compute the "layout".
 
-        console.log(Object.getOwnPropertyNames(nodes))
-        nodes.each(function (n, i) {
+        // console.log(Object.getOwnPropertyNames(nodes))
+        nodes.forEach(function (n, i) {
           n.x = i * barHeight;
         });
-
         // Update the nodes…
         var node = vis.selectAll("g.node").data(nodes, function (d) {
           return d.id || (d.id = ++i);
@@ -128,10 +126,11 @@
           .append("svg:g")
           .attr("class", "node")
           .attr("transform", function (d) {
+            console.log('source', source)
             return "translate(" + source.y0 + "," + source.x0 + ")";
           })
           .style("opacity", 1e-6);
-        console.log('nodeEnter', nodeEnter)
+
         // Enter any new nodes at the parent's previous position.
         nodeEnter
           .append("svg:rect")
@@ -146,7 +145,7 @@
           .attr("dy", 3.5)
           .attr("dx", 5.5)
           .text(function (d) {
-            return d.name;
+            return d.data.name;
           });
 
         // Transition nodes to their new position.
@@ -154,14 +153,16 @@
           .transition()
           .duration(duration)
           .attr("transform", function (d) {
+            console.log('1 node enter', d.y, d.x);
             return "translate(" + d.y + "," + d.x + ")";
           })
           .style("opacity", 1);
-        console.log('nodeEnter', nodeEnter)
+
         node
           .transition()
           .duration(duration)
           .attr("transform", function (d) {
+            console.log('2 node', d.y, d.x);
             return "translate(" + d.y + "," + d.x + ")";
           })
           .style("opacity", 1)
@@ -174,6 +175,7 @@
           .transition()
           .duration(duration)
           .attr("transform", function (d) {
+            console.log('3 node', d.y, d.x);
             return "translate(" + source.y + "," + source.x + ")";
           })
           .style("opacity", 1e-6)
@@ -211,14 +213,14 @@
           })
           .remove();
 
+
         // Stash the old positions for transition.
-        nodes.each(function (d) {
-          // console.log('call', d)
+        nodes.forEach(function (d) {
           d.x0 = d.x;
           d.y0 = d.y;
         });
 
-        // console.log('Run', nodes)
+
       }
 
     })
