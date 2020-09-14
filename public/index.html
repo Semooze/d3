@@ -41,6 +41,10 @@
       To create a production bundle, use `npm run build` or `yarn build`.
     -->
   <script>
+
+
+
+
     const data = d3.json("%PUBLIC_URL%/data.json").then((data) => {
 
       var w = 960,
@@ -52,7 +56,6 @@
         root;
 
       let tree = d3.tree(data).size([h, 100]);
-      console.log(d3.tree())
       let diagonal = d3.linkHorizontal()
         .x(function (d) { return d.y; })
         .y(function (d) { return d.x; });
@@ -62,6 +65,13 @@
         .attr("height", h)
         .append("svg:g")
         .attr("transform", "translate(20,30)");
+
+
+
+      data.x0 = 0;
+      data.y0 = 0;
+      moveChildren(data);
+      update(root = data);
 
       function moveChildren(node) {
         if (node.children) {
@@ -73,12 +83,37 @@
         }
       }
 
+
+      function click(r, d) {
+        console.log('click', d)
+        if (d.children) {
+          d._children = d.children;
+          d.children = null;
+        } else {
+          d.children = d._children;
+          d._children = null;
+        }
+        update(d);
+      }
+
+      function color(d) {
+        return d._children ? "#3182bd" : d.children ? "#c6dbef" : "#fd8d3c";
+      }
+
+
       function update(source) {
-        console.log('papapa', tree)
+        console.log('root', root)
         // Compute the flattened node list. TODO use d3.layout.hierarchy.
-        var nodes = tree
-        console.log('hahaha', nodes)
+        var h_data = d3.hierarchy(source)
+        var nodes = tree(h_data)
+        console.log('h_data', h_data)
+        // console.log('source', source)
+        // console.log('nodes', nodes)
+        // console.log('nodes', nodes.children)
+        console.log('json0', data)
         // Compute the "layout".
+
+        console.log(Object.getOwnPropertyNames(nodes))
         nodes.each(function (n, i) {
           n.x = i * barHeight;
         });
@@ -87,7 +122,7 @@
         var node = vis.selectAll("g.node").data(nodes, function (d) {
           return d.id || (d.id = ++i);
         });
-
+        console.log('node', node)
         var nodeEnter = node
           .enter()
           .append("svg:g")
@@ -96,7 +131,7 @@
             return "translate(" + source.y0 + "," + source.x0 + ")";
           })
           .style("opacity", 1e-6);
-        console.log('ssshahaha')
+        console.log('nodeEnter', nodeEnter)
         // Enter any new nodes at the parent's previous position.
         nodeEnter
           .append("svg:rect")
@@ -122,7 +157,7 @@
             return "translate(" + d.y + "," + d.x + ")";
           })
           .style("opacity", 1);
-
+        console.log('nodeEnter', nodeEnter)
         node
           .transition()
           .duration(duration)
@@ -132,7 +167,7 @@
           .style("opacity", 1)
           .select("rect")
           .style("fill", color);
-        console.log('hahaha')
+
         // Transition exiting nodes to the parent's new position.
         node
           .exit()
@@ -145,7 +180,7 @@
           .remove();
 
         // Update the links…
-        var link = vis.selectAll("path.link").data(tree.links(nodes), function (d) {
+        var link = vis.selectAll("path.link").data(h_data.links(nodes), function (d) {
           return d.target.id;
         });
 
@@ -178,32 +213,13 @@
 
         // Stash the old positions for transition.
         nodes.each(function (d) {
+          // console.log('call', d)
           d.x0 = d.x;
           d.y0 = d.y;
         });
 
-        console.log('Run')
+        // console.log('Run', nodes)
       }
-
-      function click(d) {
-        if (d.children) {
-          d._children = d.children;
-          d.children = null;
-        } else {
-          d.children = d._children;
-          d._children = null;
-        }
-        update(d);
-      }
-
-      function color(d) {
-        return d._children ? "#3182bd" : d.children ? "#c6dbef" : "#fd8d3c";
-      }
-
-      data.x0 = 0;
-      data.y0 = 0;
-      moveChildren(data);
-      update(root = data);
 
     })
   </script>
